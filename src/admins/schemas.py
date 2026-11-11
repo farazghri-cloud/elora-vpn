@@ -1,3 +1,11 @@
+import bcrypt
+
+# Compatibility fix: passlib expects bcrypt.__about__.__version__ which was removed in bcrypt 4.1+
+if not hasattr(bcrypt, "__about__"):
+    class _BcryptAbout:
+        __version__ = getattr(bcrypt, "__version__", "4.0.1")
+    bcrypt.__about__ = _BcryptAbout()
+
 from enum import Enum
 from typing import List
 

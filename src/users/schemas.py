@@ -1,7 +1,14 @@
+import bcrypt
 import secrets
 import string
 from datetime import datetime
 from typing import List, TYPE_CHECKING, Optional
+
+# Compatibility fix: passlib expects bcrypt.__about__.__version__ which was removed in bcrypt 4.1+
+if not hasattr(bcrypt, "__about__"):
+    class _BcryptAbout:
+        __version__ = getattr(bcrypt, "__version__", "4.0.1")
+    bcrypt.__about__ = _BcryptAbout()
 
 from passlib.context import CryptContext
 from pydantic import BaseModel, validator
@@ -38,7 +45,14 @@ class UserCreate(UserBase):
 
     @property
     def hashed_password(self):
-        return pwd_context.hash(self.password)
+        if not self.password:
+            return ""
+        try:
+            return pwd_context.hash(self.password)
+        except Exception:
+            pwd_bytes = self.password.encode("utf-8")
+            salt = bcrypt.gensalt()
+            return bcrypt.hashpw(pwd_bytes, salt).decode("utf-8")
 
     @classmethod
     def generate_password(cls, length: int = 12) -> str:
@@ -63,7 +77,7 @@ class UserResponse(UserBase):
     id: int
     balance: Optional[int] = 0
     balance_readable: Optional[str] = 0
-    accounts: List["AccountResponse"] = {}
+    accounts: List["AccountResponse"] = []
     created_at: datetime
     modified_at: datetime
     full_name: str

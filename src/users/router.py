@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 import src.users.service as service
 from src.admins.schemas import Admin
 from src.database import get_db
+from src.logger import logger
 from src.users.schemas import UserCreate, UserResponse, UserModify, UsersResponse
 
 router = APIRouter()
@@ -18,9 +19,13 @@ def add_user(
 ):
     try:
         db_user = service.create_user(db=db, user=user)
-
     except IntegrityError as error:
         raise HTTPException(status_code=409, detail="User already exists")
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error))
+    except Exception as error:
+        logger.error(f"Error creating user: {error}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(error))
 
     return db_user
 
