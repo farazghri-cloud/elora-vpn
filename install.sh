@@ -323,7 +323,8 @@ setup_virtualenv() {
 
     # Upgrade pip in virtual environment
     log "Upgrading pip and setuptools in virtual environment..."
-    "${INSTALL_DIR}/venv/bin/pip" install --upgrade pip "setuptools>=68.0.0" wheel || error "Failed to upgrade pip"
+    "${INSTALL_DIR}/venv/bin/pip" install --upgrade pip wheel || error "Failed to upgrade pip"
+    "${INSTALL_DIR}/venv/bin/pip" install "setuptools>=68.0.0,<82.0.0" || error "Failed to install setuptools"
 }
 
 # Function to check and install system dependencies
@@ -431,6 +432,7 @@ setup_database() {
     # Grant privileges
     log "Setting up database privileges..."
     run_pg_cmd -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};"
+    run_pg_cmd -d "${DB_NAME}" -c "GRANT ALL ON SCHEMA public TO ${DB_USER};" 2>/dev/null || true
 
     log "Database setup completed successfully"
 }
@@ -443,8 +445,8 @@ run_migrations() {
     # Ensure we're in the virtual environment
     source "${INSTALL_DIR}/venv/bin/activate" || error "Failed to activate virtual environment"
 
-    # Ensure setuptools is available for pkg_resources in SQLAlchemy psycopg2 dialect
-    "${INSTALL_DIR}/venv/bin/pip" install "setuptools>=68.0.0" || true
+    # Ensure setuptools<82 is available for pkg_resources in APScheduler and SQLAlchemy
+    "${INSTALL_DIR}/venv/bin/pip" install "setuptools>=68.0.0,<82.0.0" || true
 
     # Check if alembic.ini exists
     if [ ! -f "alembic.ini" ]; then
@@ -546,15 +548,15 @@ install_python_requirements() {
     # Ensure we're in the virtual environment
     source "${INSTALL_DIR}/venv/bin/activate" || error "Failed to activate virtual environment"
 
-    # Ensure pip, wheel, setuptools are up-to-date
-    "${INSTALL_DIR}/venv/bin/pip" install --upgrade pip "setuptools>=68.0.0" wheel || true
+    # Ensure pip and wheel are up-to-date
+    "${INSTALL_DIR}/venv/bin/pip" install --upgrade pip wheel || true
 
-    # Pre-install essential binary wheels for Python 3.10 / 3.11 / 3.12 compatibility
-    "${INSTALL_DIR}/venv/bin/pip" install "setuptools>=68.0.0" "psycopg2-binary>=2.9.9" "httptools>=0.6.1" "greenlet>=3.0.0" || true
+    # Pre-install compatible setuptools (<82 for pkg_resources) and essential wheels
+    "${INSTALL_DIR}/venv/bin/pip" install "setuptools>=68.0.0,<82.0.0" "psycopg2-binary>=2.9.9" "httptools>=0.6.1" "greenlet>=3.0.0" || true
 
     "${INSTALL_DIR}/venv/bin/pip" install -r requirements.txt || {
         warning "Standard requirements installation encountered an error, retrying..."
-        "${INSTALL_DIR}/venv/bin/pip" install "setuptools>=68.0.0" "psycopg2-binary>=2.9.9" "httptools>=0.6.1" "greenlet>=3.0.0"
+        "${INSTALL_DIR}/venv/bin/pip" install "setuptools>=68.0.0,<82.0.0" "psycopg2-binary>=2.9.9" "httptools>=0.6.1" "greenlet>=3.0.0"
         "${INSTALL_DIR}/venv/bin/pip" install -r requirements.txt || error "Failed to install Python requirements"
     }
 
