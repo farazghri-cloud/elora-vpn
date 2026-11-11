@@ -34,6 +34,7 @@ def verify_admin_token(token: str = Query(None)):
 
 
 @router.get("/backup")
+@router.get("/system/backup")
 def download_backup(payload: dict = Depends(verify_admin_token)):
     """Generate a clean PostgreSQL backup.sql file and send it as a download."""
     logger.info("Admin initiated database backup")
@@ -94,6 +95,7 @@ def download_backup(payload: dict = Depends(verify_admin_token)):
 
 
 @router.post("/restore")
+@router.post("/system/restore")
 async def restore_backup(
     file: UploadFile = File(...),
     admin: Admin = Depends(Admin.get_current),

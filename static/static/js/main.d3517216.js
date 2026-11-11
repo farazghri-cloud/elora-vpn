@@ -3,6 +3,27 @@
 //# sourceMappingURL=main.d3517216.js.map
 
 window.openBackupModal = function() {
+    function getAdminToken() {
+        let direct = localStorage.getItem("token");
+        if (direct) return direct;
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            if (key && (key.includes("appData") || key.includes("token") || key.includes("auth"))) {
+                try {
+                    let val = localStorage.getItem(key);
+                    if (val && (val.startsWith("{") || val.startsWith("["))) {
+                        let parsed = JSON.parse(val);
+                        if (parsed?.value?.token) return parsed.value.token;
+                        if (parsed?.token) return parsed.token;
+                    } else if (val && val.length > 20 && !val.includes(" ")) {
+                        return val;
+                    }
+                } catch(e) {}
+            }
+        }
+        return "";
+    }
+
     let existing = document.getElementById("backup-restore-modal");
     if (existing) { existing.style.display = "flex"; return; }
 
@@ -70,14 +91,47 @@ window.openBackupModal = function() {
     document.getElementById("btn-do-backup").onclick = function() {
         let status = document.getElementById("backup-status-text");
         status.style.color = "#38bdf8";
-        status.innerText = "در حال ایجاد و دریافت فایل پشتیبان...";
+        status.innerText = "در حال ایجاد و دانلود فایل پشتیبان...";
 
-        let token = localStorage.getItem("token") || "";
-        window.location.href = "/api/system/backup?token=" + encodeURIComponent(token);
-        setTimeout(() => {
+        let token = getAdminToken();
+        let downloadUrl = "/api/system/backup?token=" + encodeURIComponent(token);
+
+        fetch(downloadUrl, {
+            headers: token ? { "Authorization": "Bearer " + token } : {}
+        })
+        .then(res => {
+            if (!res.ok) {
+                // Fallback attempt without /system prefix
+                return fetch("/api/backup?token=" + encodeURIComponent(token), {
+                    headers: token ? { "Authorization": "Bearer " + token } : {}
+                });
+            }
+            return res;
+        })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error("خطا در ایجاد بکاپ (کد " + res.status + ")");
+            }
+            return res.blob();
+        })
+        .then(blob => {
+            let url = window.URL.createObjectURL(blob);
+            let a = document.createElement("a");
+            a.style.display = "none";
+            a.href = url;
+            a.download = "backup.sql";
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
             status.style.color = "#34d399";
-            status.innerText = "فایل backup.sql با موفقیت دانلود شد.";
-        }, 1500);
+            status.innerText = "فایل backup.sql با موفقیت دریافت و ذخیره شد.";
+        })
+        .catch(err => {
+            status.style.color = "#f43f5e";
+            status.innerText = err.message || "خطا در دانلود فایل پشتیبان";
+        });
     };
 
     // Restore backup logic
@@ -107,13 +161,24 @@ window.openBackupModal = function() {
         let formData = new FormData();
         formData.append("file", file);
 
-        let token = localStorage.getItem("token") || "";
+        let token = getAdminToken();
         let authHeader = token ? { "Authorization": "Bearer " + token } : {};
 
         fetch("/api/system/restore", {
             method: "POST",
             headers: authHeader,
             body: formData
+        })
+        .then(res => {
+            if (!res.ok) {
+                // Fallback attempt without /system prefix
+                return fetch("/api/restore", {
+                    method: "POST",
+                    headers: authHeader,
+                    body: formData
+                });
+            }
+            return res;
         })
         .then(res => {
             if (!res.ok) {
