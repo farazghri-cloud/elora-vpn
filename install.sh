@@ -545,12 +545,12 @@ install_python_requirements() {
     # Ensure pip, wheel, setuptools are up-to-date
     "${INSTALL_DIR}/venv/bin/pip" install --upgrade pip setuptools wheel || true
 
-    # Pre-install psycopg2-binary for seamless Ubuntu 22.04 LTS database driver support
-    "${INSTALL_DIR}/venv/bin/pip" install "psycopg2-binary>=2.9.9" || true
+    # Pre-install essential binary wheels for Python 3.10 / 3.11 / 3.12 compatibility
+    "${INSTALL_DIR}/venv/bin/pip" install "psycopg2-binary>=2.9.9" "httptools>=0.6.1" "greenlet>=3.0.0" || true
 
     "${INSTALL_DIR}/venv/bin/pip" install -r requirements.txt || {
         warning "Standard requirements installation encountered an error, retrying..."
-        "${INSTALL_DIR}/venv/bin/pip" install "psycopg2-binary>=2.9.9"
+        "${INSTALL_DIR}/venv/bin/pip" install "psycopg2-binary>=2.9.9" "httptools>=0.6.1" "greenlet>=3.0.0"
         "${INSTALL_DIR}/venv/bin/pip" install -r requirements.txt || error "Failed to install Python requirements"
     }
 
