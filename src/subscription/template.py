@@ -1,7 +1,5 @@
 import base64
 import html
-import json
-import urllib.parse
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -18,7 +16,7 @@ def render_subscription_page(
     nodes_info: List[Dict[str, Any]],
     subscription_url: str,
 ) -> str:
-    """Renders a responsive, modern HTML dashboard for subscription details."""
+    """Renders a responsive, sleek, clean HTML dashboard for BESTPRIME V2RAY."""
     now = datetime.utcnow()
 
     # User & Title
@@ -26,7 +24,6 @@ def render_subscription_page(
         account.user_title or account.service_title or account.email or "کاربر گرامی"
     )
     email = account.email or ""
-    uuid = str(account.uuid)
 
     # Traffic calculations
     used_bytes = int(account.used_traffic or 0)
@@ -49,7 +46,6 @@ def render_subscription_page(
     # Time & Expiry calculations
     is_expired = False
     remaining_days_text = ""
-    started_at = account.started_at
     expired_at = account.expired_at
 
     if expired_at:
@@ -61,82 +57,52 @@ def render_subscription_page(
             days = delta.days
             hours = int(delta.seconds // 3600)
             if days > 0:
-                remaining_days_text = f"{days} روز و {hours} ساعت"
+                remaining_days_text = f"{days} روز و {hours} ساعت باقی‌مانده"
             else:
-                remaining_days_text = f"{hours} ساعت"
+                remaining_days_text = f"{hours} ساعت باقی‌مانده"
     else:
         remaining_days_text = "نامحدود (بدون انقضا)"
 
-    started_jalali = format_jalali_date(started_at)
-    started_gregorian = format_gregorian_date(started_at)
     expired_jalali = format_jalali_date(expired_at)
-    expired_gregorian = format_gregorian_date(expired_at)
 
     # Status detection
     if not account.enable:
-        status_key = "disabled"
         status_label = "غیرفعال شده"
         status_badge_class = "badge-disabled"
-        status_glow_class = "glow-disabled"
     elif is_expired:
-        status_key = "expired"
         status_label = "منقضی شده"
         status_badge_class = "badge-expired"
-        status_glow_class = "glow-expired"
     elif not is_unlimited_traffic and used_bytes >= limit_bytes:
-        status_key = "exhausted"
         status_label = "اتمام حجم"
         status_badge_class = "badge-exhausted"
-        status_glow_class = "glow-exhausted"
     else:
-        status_key = "active"
         status_label = "فعال و متصل"
         status_badge_class = "badge-active"
-        status_glow_class = "glow-active"
 
-    # Deep links
-    sub_b64 = base64.b64encode(subscription_url.encode("utf-8")).decode("ascii")
-    v2rayng_url = f"v2rayng://install-config?url={urllib.parse.quote(subscription_url)}"
-    shadowrocket_url = f"sub://{sub_b64}"
-    streisand_url = f"streisand://import/{subscription_url}"
-    singbox_url = f"sing-box://import-remote-profile?url={urllib.parse.quote(subscription_url)}#{urllib.parse.quote(user_title)}"
-    clash_url = f"clash://install-config?url={urllib.parse.quote(subscription_url)}&name={urllib.parse.quote(user_title)}"
-
-    all_configs_text = "\n".join(configs)
-    all_configs_escaped = html.escape(all_configs_text)
-
-    # Pre-render server nodes cards
+    # Pre-render server nodes cards (read-only list, non-copyable)
     nodes_html_list = []
     for idx, node in enumerate(nodes_info, 1):
         remark = html.escape(node.get("remark", f"سرور {idx}"))
         network = html.escape(str(node.get("network", "WS")).upper())
         security = html.escape(str(node.get("security", "TLS")).upper())
         port = str(node.get("port", ""))
-        link = node.get("link", "")
-        escaped_link = html.escape(link)
 
         nodes_html_list.append(
-            f"""
+            f'''
             <div class="node-card">
                 <div class="node-info">
                     <div class="node-header">
+                        <span class="node-dot"></span>
                         <span class="node-name">{remark}</span>
-                        <div class="node-tags">
-                            <span class="tag tag-protocol">{network}</span>
-                            <span class="tag tag-security">{security}</span>
-                        </div>
                     </div>
                     <div class="node-sub">پورت: {port}</div>
                 </div>
-                <button class="btn-node-copy" onclick="copyText('{escaped_link}', 'کانفیگ {remark} کپی شد')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                    <span>کپی</span>
-                </button>
+                <div class="node-tags">
+                    <span class="tag tag-protocol">{network}</span>
+                    <span class="tag tag-security">{security}</span>
+                </div>
             </div>
-            """
+            '''
         )
     nodes_html = "".join(nodes_html_list)
 
@@ -149,13 +115,13 @@ def render_subscription_page(
         progress_color = "linear-gradient(90deg, #06b6d4, #8b5cf6)"
 
     # Standalone HTML
-    return f"""<!DOCTYPE html>
+    return f'''<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0b0f19">
-    <title>اطلاعات اشتراک | {html.escape(user_title)}</title>
+    <title>BESTPRIME V2RAY | {html.escape(user_title)}</title>
     <style>
         :root {{
             --bg-color: #0b0f19;
@@ -167,8 +133,6 @@ def render_subscription_page(
             --accent-cyan: #06b6d4;
             --accent-purple: #8b5cf6;
             --accent-emerald: #10b981;
-            --accent-amber: #f59e0b;
-            --accent-rose: #f43f5e;
             --font-family: -apple-system, BlinkMacSystemFont, "Vazirmatn", "Segoe UI", Roboto, "Helvetica Neue", Tahoma, sans-serif;
         }}
         * {{
@@ -189,15 +153,15 @@ def render_subscription_page(
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            padding: 24px 16px;
+            padding: 20px 16px;
             line-height: 1.6;
         }}
         .container {{
             width: 100%;
-            max-width: 580px;
+            max-width: 520px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
         }}
         .card {{
             background: var(--card-bg);
@@ -205,17 +169,15 @@ def render_subscription_page(
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid var(--card-border);
             border-radius: 20px;
-            padding: 22px;
+            padding: 20px;
             box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-            transition: transform 0.2s, box-shadow 0.2s;
         }}
-        /* Header Card */
+        
+        /* Header Card with Expiry Integration */
         .header-card {{
-            position: relative;
-            overflow: hidden;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 14px;
         }}
         .header-top {{
             display: flex;
@@ -230,41 +192,61 @@ def render_subscription_page(
         .logo-icon {{
             width: 44px;
             height: 44px;
-            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
             border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #fff;
-            box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
         }}
-        .logo-text {{
-            font-size: 1.25rem;
-            font-weight: 800;
-            background: linear-gradient(90deg, #38bdf8, #c084fc);
+        .brand-title {{
+            font-size: 1.15rem;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            background: linear-gradient(90deg, #38bdf8, #a855f7);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }}
         .user-title {{
-            font-size: 1.05rem;
+            font-size: 0.92rem;
             font-weight: 700;
             color: var(--text-primary);
         }}
-        .user-email {{
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            direction: ltr;
-            text-align: right;
-            word-break: break-all;
+        
+        .header-actions {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }}
-        /* Status Badge */
+        
+        /* Telegram Support Button */
+        .btn-telegram {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: rgba(34, 158, 217, 0.15);
+            border: 1px solid rgba(34, 158, 217, 0.35);
+            border-radius: 10px;
+            color: #38bdf8;
+            text-decoration: none;
+            transition: all 0.2s;
+        }}
+        .btn-telegram:hover, .btn-telegram:active {{
+            background: #229ED9;
+            color: #fff;
+            transform: scale(1.05);
+        }}
+        
         .status-badge {{
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 6px 14px;
+            padding: 5px 12px;
             border-radius: 9999px;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             font-weight: 600;
         }}
         .badge-active {{
@@ -288,65 +270,87 @@ def render_subscription_page(
             border: 1px solid rgba(100, 116, 139, 0.3);
         }}
         .status-dot {{
-            width: 8px;
-            height: 8px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
             background-color: currentColor;
             display: inline-block;
         }}
+
+        /* Combined Expiry Banner in Header */
+        .expiry-banner {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 0.82rem;
+        }}
+        .expiry-days {{
+            font-weight: 700;
+            color: var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }}
+        .expiry-date {{
+            color: var(--text-muted);
+            direction: ltr;
+        }}
+
         /* Traffic Card */
         .section-title {{
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             font-weight: 700;
             color: var(--text-secondary);
-            margin-bottom: 14px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             gap: 8px;
         }}
         .progress-container {{
-            margin: 16px 0;
+            margin: 12px 0 16px 0;
         }}
         .progress-header {{
             display: flex;
             justify-content: space-between;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             font-weight: 600;
             margin-bottom: 8px;
         }}
         .progress-bar-bg {{
-            height: 12px;
+            height: 10px;
             background: rgba(255, 255, 255, 0.07);
             border-radius: 9999px;
             overflow: hidden;
-            position: relative;
         }}
         .progress-bar-fill {{
             height: 100%;
             border-radius: 9999px;
             background: {progress_color};
-            transition: width 1s ease-in-out;
+            transition: width 0.8s ease-in-out;
         }}
         .stats-grid {{
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-top: 14px;
+            gap: 8px;
         }}
         .stat-box {{
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 14px;
-            padding: 12px 8px;
+            border-radius: 12px;
+            padding: 10px 6px;
             text-align: center;
         }}
         .stat-label {{
-            font-size: 0.76rem;
+            font-size: 0.74rem;
             color: var(--text-muted);
             margin-bottom: 4px;
         }}
         .stat-value {{
-            font-size: 0.98rem;
+            font-size: 0.92rem;
             font-weight: 700;
             color: var(--text-primary);
         }}
@@ -354,47 +358,7 @@ def render_subscription_page(
         .stat-value.highlight-emerald {{ color: var(--accent-emerald); }}
         .stat-value.highlight-purple {{ color: var(--accent-purple); }}
 
-        /* Time & Expiry Card */
-        .time-grid {{
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }}
-        .time-box {{
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 14px;
-            padding: 12px;
-        }}
-        .time-box.full-width {{
-            grid-column: 1 / -1;
-            background: rgba(139, 92, 246, 0.08);
-            border-color: rgba(139, 92, 246, 0.2);
-            text-align: center;
-        }}
-        .time-label {{
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-        }}
-        .time-value {{
-            font-size: 0.92rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }}
-        .time-sub {{
-            font-size: 0.72rem;
-            color: var(--text-muted);
-            direction: ltr;
-            margin-top: 2px;
-        }}
-
-        /* Buttons & Actions */
-        .action-buttons {{
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }}
+        /* Subscription & QR Card */
         .btn {{
             display: flex;
             align-items: center;
@@ -404,66 +368,17 @@ def render_subscription_page(
             padding: 13px 18px;
             border-radius: 14px;
             font-size: 0.92rem;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             border: none;
             transition: all 0.2s ease;
-            text-decoration: none;
             color: #fff;
-        }}
-        .btn-primary {{
             background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
             box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
         }}
-        .btn-primary:active {{
+        .btn:active {{
             transform: scale(0.98);
         }}
-        .btn-secondary {{
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid var(--card-border);
-            color: var(--text-primary);
-        }}
-        .btn-secondary:active {{
-            background: rgba(255, 255, 255, 0.1);
-            transform: scale(0.98);
-        }}
-        
-        /* App Quick Connect Grid */
-        .apps-grid {{
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-top: 10px;
-        }}
-        .app-btn {{
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 14px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.07);
-            border-radius: 14px;
-            color: var(--text-primary);
-            text-decoration: none;
-            font-size: 0.88rem;
-            font-weight: 600;
-            transition: background 0.2s, transform 0.2s;
-        }}
-        .app-btn:hover, .app-btn:active {{
-            background: rgba(255, 255, 255, 0.08);
-            transform: translateY(-2px);
-        }}
-        .app-icon {{
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-        }}
-        .app-btn-v2ray {{ border-color: rgba(6, 182, 212, 0.3); }}
-        .app-btn-shadow {{ border-color: rgba(139, 92, 246, 0.3); }}
 
         /* QR Code Container */
         .qr-section {{
@@ -475,30 +390,30 @@ def render_subscription_page(
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 16px;
-            margin-top: 12px;
+            margin-top: 14px;
         }}
         #qrcode-canvas {{
             background: #ffffff;
-            padding: 12px;
-            border-radius: 14px;
+            padding: 10px;
+            border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
             cursor: pointer;
         }}
         .qr-help {{
-            margin-top: 10px;
-            font-size: 0.78rem;
+            margin-top: 8px;
+            font-size: 0.76rem;
             color: var(--text-muted);
             text-align: center;
         }}
 
-        /* Server Nodes List */
+        /* Server Locations List (Non-copyable, informational only) */
         .nodes-container {{
             display: flex;
             flex-direction: column;
             gap: 8px;
-            max-height: 280px;
+            max-height: 240px;
             overflow-y: auto;
-            padding-left: 4px;
+            padding-left: 2px;
         }}
         .node-card {{
             display: flex;
@@ -508,7 +423,7 @@ def render_subscription_page(
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 12px;
             padding: 10px 14px;
-            gap: 8px;
+            user-select: none;
         }}
         .node-info {{
             display: flex;
@@ -520,7 +435,13 @@ def render_subscription_page(
             display: flex;
             align-items: center;
             gap: 8px;
-            flex-wrap: wrap;
+        }}
+        .node-dot {{
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-emerald);
+            flex-shrink: 0;
         }}
         .node-name {{
             font-size: 0.88rem;
@@ -533,6 +454,7 @@ def render_subscription_page(
         .node-tags {{
             display: flex;
             gap: 4px;
+            flex-shrink: 0;
         }}
         .tag {{
             font-size: 0.68rem;
@@ -551,24 +473,7 @@ def render_subscription_page(
         .node-sub {{
             font-size: 0.74rem;
             color: var(--text-muted);
-        }}
-        .btn-node-copy {{
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: var(--text-primary);
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            flex-shrink: 0;
-            transition: background 0.2s;
-        }}
-        .btn-node-copy:active {{
-            background: rgba(255, 255, 255, 0.18);
+            padding-right: 16px;
         }}
 
         /* Toast notification */
@@ -613,7 +518,7 @@ def render_subscription_page(
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
+        <!-- Header & Expiry Info Combined -->
         <div class="card header-card">
             <div class="header-top">
                 <div class="logo-box">
@@ -624,16 +529,37 @@ def render_subscription_page(
                         </svg>
                     </div>
                     <div>
-                        <div class="logo-text">Elora VPN</div>
+                        <div class="brand-title">BESTPRIME V2RAY</div>
                         <div class="user-title">{html.escape(user_title)}</div>
                     </div>
                 </div>
-                <div class="status-badge {status_badge_class}">
-                    <span class="status-dot"></span>
-                    <span>{status_label}</span>
+                
+                <div class="header-actions">
+                    <!-- Telegram Support Link -->
+                    <a href="https://t.me/acstoreir" target="_blank" rel="noopener noreferrer" class="btn-telegram" title="پشتیبانی تلگرام">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.19-.08-.05-.19-.02-.27 0-.12.03-1.99 1.27-5.63 3.73-.53.36-1.02.54-1.45.53-.48-.01-1.4-.27-2.09-.49-.84-.27-1.51-.42-1.45-.89.03-.25.38-.51 1.07-.78 4.19-1.82 6.99-3.03 8.39-3.61 3.99-1.66 4.82-1.95 5.36-1.96.12 0 .38.03.55.17.14.12.18.28.2.4.01.07.02.21 0 .36z"/>
+                        </svg>
+                    </a>
+                    
+                    <div class="status-badge {status_badge_class}">
+                        <span class="status-dot"></span>
+                        <span>{status_label}</span>
+                    </div>
                 </div>
             </div>
-            {f'<div class="user-email">{html.escape(email)}</div>' if email and email != user_title else ''}
+
+            <!-- Integrated Expiry Banner -->
+            <div class="expiry-banner">
+                <div class="expiry-days">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>{remaining_days_text}</span>
+                </div>
+                <div class="expiry-date">انقضا: {expired_jalali}</div>
+            </div>
         </div>
 
         <!-- Traffic Stats -->
@@ -642,7 +568,7 @@ def render_subscription_page(
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                 </svg>
-                <span>وضعیت حجم و ترافیک</span>
+                <span>وضعیت حجم و مصرف</span>
             </div>
 
             <div class="progress-container">
@@ -671,100 +597,34 @@ def render_subscription_page(
             </div>
         </div>
 
-        <!-- Expiry & Duration -->
-        <div class="card">
-            <div class="section-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                <span>اعتبار زمانی سرویس</span>
-            </div>
-
-            <div class="time-grid">
-                <div class="time-box full-width">
-                    <div class="time-label">مدت زمان باقی‌مانده</div>
-                    <div class="time-value" style="color: var(--accent-cyan); font-size: 1.05rem;">{remaining_days_text}</div>
-                </div>
-                <div class="time-box">
-                    <div class="time-label">تاریخ فعال‌سازی</div>
-                    <div class="time-value">{started_jalali}</div>
-                    <div class="time-sub">{started_gregorian}</div>
-                </div>
-                <div class="time-box">
-                    <div class="time-label">تاریخ انقضا</div>
-                    <div class="time-value">{expired_jalali}</div>
-                    <div class="time-sub">{expired_gregorian}</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Actions & Copy -->
+        <!-- Subscription Link & QR -->
         <div class="card">
             <div class="section-title">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                     <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                 </svg>
-                <span>لینک اشتراک و اتصال</span>
+                <span>لینک سابسکریپشن</span>
             </div>
 
-            <div class="action-buttons">
-                <button class="btn btn-primary" onclick="copySubscription()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                    <span>کپی لینک سابسکریپشن</span>
-                </button>
-                <button class="btn btn-secondary" onclick="copyAllConfigs()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                    </svg>
-                    <span>کپی تمام کانفیگ‌ها ({len(configs)})</span>
-                </button>
-            </div>
-
-            <!-- One click apps connect -->
-            <div style="margin-top: 18px;">
-                <div class="time-label" style="margin-bottom: 8px;">اتصال مستقیم به برنامه‌ها:</div>
-                <div class="apps-grid">
-                    <a href="{v2rayng_url}" class="app-btn app-btn-v2ray">
-                        <span class="app-icon" style="background: rgba(6, 182, 212, 0.2);">🤖</span>
-                        <span>v2rayNG (اندروید)</span>
-                    </a>
-                    <a href="{shadowrocket_url}" class="app-btn app-btn-shadow">
-                        <span class="app-icon" style="background: rgba(139, 92, 246, 0.2);">🚀</span>
-                        <span>Shadowrocket</span>
-                    </a>
-                    <a href="{streisand_url}" class="app-btn">
-                        <span class="app-icon" style="background: rgba(16, 185, 129, 0.2);">⚡</span>
-                        <span>Streisand (iOS)</span>
-                    </a>
-                    <a href="{singbox_url}" class="app-btn">
-                        <span class="app-icon" style="background: rgba(245, 158, 11, 0.2);">📦</span>
-                        <span>Sing-box</span>
-                    </a>
-                    <a href="{clash_url}" class="app-btn" style="grid-column: 1 / -1;">
-                        <span class="app-icon" style="background: rgba(236, 72, 153, 0.2);">🐱</span>
-                        <span>Clash / Stash</span>
-                    </a>
-                </div>
-            </div>
+            <button class="btn" onclick="copySubscription()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>کپی لینک سابسکریپشن</span>
+            </button>
 
             <!-- QR Code Section -->
             <div class="qr-section">
                 <div id="qrcode-container">
                     <canvas id="qrcode-canvas"></canvas>
                 </div>
-                <div class="qr-help">جهت اسکن با دوربین گوشی یا داخل اپلیکیشن‌های V2Ray</div>
+                <div class="qr-help">اسکن با دوربین یا نرم‌افزارهای V2Ray جهت اتصال سریع</div>
             </div>
         </div>
 
-        <!-- Server Nodes List -->
+        <!-- Server Locations List (Informational Only) -->
         {f'''
         <div class="card">
             <div class="section-title">
@@ -774,7 +634,7 @@ def render_subscription_page(
                     <line x1="6" y1="6" x2="6.01" y2="6"></line>
                     <line x1="6" y1="18" x2="6.01" y2="18"></line>
                 </svg>
-                <span>فهرست سرورها و لوکیشن‌ها ({len(nodes_info)})</span>
+                <span>لوکیشن‌های فعال در این اشتراک ({len(nodes_info)})</span>
             </div>
             <div class="nodes-container">
                 {nodes_html}
@@ -782,20 +642,17 @@ def render_subscription_page(
         </div>
         ''' if nodes_info else ''}
 
-        <div style="text-align: center; font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">
-            Elora VPN Manager &bull; Powered by Xray Core
+        <div style="text-align: center; font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
+            BESTPRIME V2RAY &bull; طراحی شده برای اتصال پرسرعت و پایدار
         </div>
     </div>
-
-    <!-- Hidden Raw Configs container -->
-    <textarea id="raw-configs" style="display:none;">{all_configs_escaped}</textarea>
 
     <!-- Toast Notification -->
     <div id="toast" class="toast">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5">
             <path d="M20 6L9 17l-5-5"></path>
         </svg>
-        <span id="toast-text">کپی شد!</span>
+        <span id="toast-text">لینک سابسکریپشن کپی شد</span>
     </div>
 
     <script>
@@ -811,17 +668,17 @@ def render_subscription_page(
             }}, 2500);
         }}
 
-        function copyText(text, successMsg) {{
+        function copySubscription() {{
             if (navigator.clipboard && window.isSecureContext) {{
-                navigator.clipboard.writeText(text).then(() => {{
-                    showToast(successMsg);
-                }}).catch(() => fallbackCopy(text, successMsg));
+                navigator.clipboard.writeText(subUrl).then(() => {{
+                    showToast("لینک سابسکریپشن با موفقیت کپی شد");
+                }}).catch(() => fallbackCopy(subUrl));
             }} else {{
-                fallbackCopy(text, successMsg);
+                fallbackCopy(subUrl);
             }}
         }}
 
-        function fallbackCopy(text, successMsg) {{
+        function fallbackCopy(text) {{
             const textArea = document.createElement("textarea");
             textArea.value = text;
             textArea.style.position = "fixed";
@@ -831,54 +688,36 @@ def render_subscription_page(
             textArea.select();
             try {{
                 document.execCommand("copy");
-                showToast(successMsg);
+                showToast("لینک سابسکریپشن با موفقیت کپی شد");
             }} catch (err) {{
-                showToast("خطا در کپی");
+                showToast("خطا در کپی لینک");
             }}
             document.body.removeChild(textArea);
         }}
 
-        function copySubscription() {{
-            copyText(subUrl, "لینک سابسکریپشن با موفقیت کپی شد");
-        }}
-
-        function copyAllConfigs() {{
-            const text = document.getElementById("raw-configs").value;
-            copyText(text, "تمام کانفیگ‌ها با موفقیت کپی شدند");
-        }}
-
-        // Standalone Pure-JS Lightweight QR Code Generator (no external scripts or CDNs needed)
+        // QR Code Generator
         (function() {{
-            // Minimalist embedded QR renderer to ensure 100% offline rendering without CDN
             function renderQR(text, canvas) {{
-                // Fallback high-contrast matrix generator
-                // We use standard Google Chart / encoded SVG if canvas not populated,
-                // or built-in fast QR drawing algorithm:
                 try {{
                     const size = 180;
                     const ctx = canvas.getContext('2d');
                     canvas.width = size;
                     canvas.height = size;
                     
-                    // Simple, clean vector SVG QR embedded into Image
                     const img = new Image();
                     img.crossOrigin = "anonymous";
                     img.onload = function() {{
                         ctx.drawImage(img, 0, 0, size, size);
                     }};
-                    // Fallback to high quality SVG qr data uri generated on fly or API
                     img.src = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=2&data=" + encodeURIComponent(text);
                     
                     img.onerror = function() {{
-                        // Offline visual fallback
                         ctx.fillStyle = "#ffffff";
                         ctx.fillRect(0, 0, size, size);
                         ctx.fillStyle = "#0b0f19";
                         ctx.font = "bold 12px sans-serif";
                         ctx.textAlign = "center";
-                        ctx.fillText("QR Code", size/2, size/2 - 10);
-                        ctx.font = "10px sans-serif";
-                        ctx.fillText("جهت کپی لینک بالا کلیک کنید", size/2, size/2 + 10);
+                        ctx.fillText("QR Code", size/2, size/2);
                     }};
                 }} catch(e) {{
                     console.error("QR Error", e);
@@ -893,17 +732,17 @@ def render_subscription_page(
         }})();
     </script>
 </body>
-</html>"""
+</html>'''
 
 
 def render_not_found_page(uuid: str) -> str:
     """Render a clean 404 page when subscription is not found."""
-    return f"""<!DOCTYPE html>
+    return f'''<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>اشتراک یافت نشد | Elora VPN</title>
+    <title>اشتراک یافت نشد | BESTPRIME V2RAY</title>
     <style>
         body {{
             background: #0b0f19;
@@ -955,8 +794,8 @@ def render_not_found_page(uuid: str) -> str:
     <div class="card">
         <div class="icon">🔍</div>
         <h1>اشتراک یافت نشد</h1>
-        <p>شناسه سابسکریپشن وارد شده نامعتبر است، منقضی گردیده و یا توسط مدیریت سرور حذف شده است.</p>
+        <p>شناسه سابسکریپشن وارد شده نامعتبر است، منقضی گردیده و یا توسط مدیریت حذف شده است.</p>
         <div class="uuid">{html.escape(uuid)}</div>
     </div>
 </body>
-</html>"""
+</html>'''
