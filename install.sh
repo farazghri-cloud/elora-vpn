@@ -322,8 +322,8 @@ setup_virtualenv() {
     source "${INSTALL_DIR}/venv/bin/activate" || error "Failed to activate virtual environment"
 
     # Upgrade pip in virtual environment
-    log "Upgrading pip in virtual environment..."
-    "${INSTALL_DIR}/venv/bin/pip" install --upgrade pip || error "Failed to upgrade pip"
+    log "Upgrading pip and setuptools in virtual environment..."
+    "${INSTALL_DIR}/venv/bin/pip" install --upgrade pip "setuptools>=68.0.0" wheel || error "Failed to upgrade pip"
 }
 
 # Function to check and install system dependencies
@@ -339,6 +339,7 @@ check_dependencies() {
         "python3-pip"
         "python3-venv"
         "python3-dev"  # Required for some Python packages
+        "python3-setuptools"
         "jq"
         "unzip"
         "wget"
@@ -442,13 +443,16 @@ run_migrations() {
     # Ensure we're in the virtual environment
     source "${INSTALL_DIR}/venv/bin/activate" || error "Failed to activate virtual environment"
 
+    # Ensure setuptools is available for pkg_resources in SQLAlchemy psycopg2 dialect
+    "${INSTALL_DIR}/venv/bin/pip" install "setuptools>=68.0.0" || true
+
     # Check if alembic.ini exists
     if [ ! -f "alembic.ini" ]; then
         error "alembic.ini not found in installation directory"
     fi
 
     # Run migrations using venv python
-    # export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}/${DB_NAME}"
+    # export DATABASE_URL="postgresql://${DB_USER}:***@${DB_HOST}/${DB_NAME}"
 
     log "Running Alembic migrations..."
     "${INSTALL_DIR}/venv/bin/alembic" upgrade head || error "Failed to run database migrations"
@@ -543,14 +547,14 @@ install_python_requirements() {
     source "${INSTALL_DIR}/venv/bin/activate" || error "Failed to activate virtual environment"
 
     # Ensure pip, wheel, setuptools are up-to-date
-    "${INSTALL_DIR}/venv/bin/pip" install --upgrade pip setuptools wheel || true
+    "${INSTALL_DIR}/venv/bin/pip" install --upgrade pip "setuptools>=68.0.0" wheel || true
 
     # Pre-install essential binary wheels for Python 3.10 / 3.11 / 3.12 compatibility
-    "${INSTALL_DIR}/venv/bin/pip" install "psycopg2-binary>=2.9.9" "httptools>=0.6.1" "greenlet>=3.0.0" || true
+    "${INSTALL_DIR}/venv/bin/pip" install "setuptools>=68.0.0" "psycopg2-binary>=2.9.9" "httptools>=0.6.1" "greenlet>=3.0.0" || true
 
     "${INSTALL_DIR}/venv/bin/pip" install -r requirements.txt || {
         warning "Standard requirements installation encountered an error, retrying..."
-        "${INSTALL_DIR}/venv/bin/pip" install "psycopg2-binary>=2.9.9" "httptools>=0.6.1" "greenlet>=3.0.0"
+        "${INSTALL_DIR}/venv/bin/pip" install "setuptools>=68.0.0" "psycopg2-binary>=2.9.9" "httptools>=0.6.1" "greenlet>=3.0.0"
         "${INSTALL_DIR}/venv/bin/pip" install -r requirements.txt || error "Failed to install Python requirements"
     }
 
