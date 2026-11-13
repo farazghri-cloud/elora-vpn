@@ -118,7 +118,11 @@ def export_via_sqlalchemy(output_file_path: str):
                 if pks and len(pks) == 1:
                     pk = pks[0]
                     out.write("DO $$ BEGIN\n")
-                    out.write(f"  PERFORM setval(pg_get_serial_sequence('"{table}"', '{pk}'), COALESCE((SELECT MAX("{pk}") FROM "{table}"), 1), true);\n")
+                    seq_cmd = (
+                        "  PERFORM setval(pg_get_serial_sequence('\"{}\"', '{}'), "
+                        "COALESCE((SELECT MAX(\"{}\") FROM \"{}\"), 1), true);\n"
+                    ).format(table, pk, pk, table)
+                    out.write(seq_cmd)
                     out.write("EXCEPTION WHEN OTHERS THEN NULL;\nEND $$;\n\n")
 
             out.write("SET session_replication_role = 'origin';\n")
