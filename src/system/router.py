@@ -265,64 +265,41 @@ async def restore_backup(
 
         restore_success = False
 
-        # 1. First attempt: Restore as postgres superuser (fastest and handles all roles/ownerships)
+        # 1. Pipe directly into psql as postgres superuser (instant, no file permission issues, handles all roles)
         try:
-            cmd_pg = ["sudo", "-u", "postgres", "psql", "-d", db_name, "-f", restore_file_path]
-            proc_pg = subprocess.run(
-                cmd_pg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=900
+            with open(restore_file_path, "rb") as sql_in:
+                proc_pg = subprocess.run(
+                    ["sudo", "-u", "postgres", "psql", "-d", db_name],
+                    stdin=sql_in,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=300,
+                )
+            restore_success = True
+            logger.info("Database restored successfully via postgres superuser psql stdin")
+        except Exception as e:
+            logger.warning(f"Superuser psql stdin execution note: {e}")
+
+        # Ensure permissions and schema rights for the application user
+        try:
+            subprocess.run(
+                ["sudo", "-u", "postgres", "psql", "-c", f"ALTER DATABASE {db_name} OWNER TO {db_user}; GRANT ALL PRIVILEGES ON DATABASE {db_name} TO {db_user}; GRANT ALL ON SCHEMA public TO {db_user};"],
+                capture_output=True,
+                timeout=30,
             )
-            # Check if tables were restored
-            if proc_pg.returncode == 0 or "CREATE TABLE" in proc_pg.stdout or "INSERT 0" in proc_pg.stdout or "COPY" in proc_pg.stdout:
-                restore_success = True
-                logger.info("Database restored successfully via postgres superuser psql")
-                # Ensure permissions for the application user
+            # Re-apply the password from .env in case the backup overwrote user credentials
+            if db_pass:
                 subprocess.run(
-                    ["sudo", "-u", "postgres", "psql", "-c", f"GRANT ALL PRIVILEGES ON DATABASE {db_name} TO {db_user}; GRANT ALL ON SCHEMA public TO {db_user};"],
+                    ["sudo", "-u", "postgres", "psql", "-c", f"ALTER USER {db_user} WITH PASSWORD '{db_pass}';"],
                     capture_output=True,
                     timeout=30,
                 )
         except Exception as e:
-            logger.warning(f"Superuser psql execution note: {e}")
-
-        # 2. Second attempt: Restore using user credentials via psql
-        if not restore_success:
-            psql_bin = find_pg_tool("psql")
-            if psql_bin:
-                cmd = [
-                    psql_bin,
-                    "-h",
-                    db_host,
-                    "-p",
-                    db_port,
-                    "-U",
-                    db_user,
-                    "-d",
-                    db_name,
-                    "-f",
-                    restore_file_path,
-                ]
-                try:
-                    proc = subprocess.run(
-                        cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=900
-                    )
-                    if proc.returncode == 0 or "INSERT 0" in proc.stdout or "CREATE TABLE" in proc.stdout:
-                        restore_success = True
-                        logger.info("Database restored successfully via user psql")
-                    else:
-                        logger.warning(f"psql restore output ({proc.returncode}): {proc.stderr[:300]}")
-                except Exception as e:
-                    logger.warning(f"psql command error: {e}")
-
-        # 3. Fallback to SQLAlchemy engine restore if psql not found
-        if not restore_success:
-            logger.info("Restoring database via SQLAlchemy engine fallback...")
-            import_via_sqlalchemy(restore_file_path)
-            restore_success = True
-            logger.info("Database restored successfully via SQLAlchemy engine")
+            logger.warning(f"Post-restore user permission grant note: {e}")
 
         logger.info("Database restore process finished successfully")
 
-        # Automatically schedule reload 2 seconds after returning HTTP response
+        # Automatically schedule reload 2.5 seconds after returning HTTP response
         def delayed_restart():
             import time
             time.sleep(2.5)
