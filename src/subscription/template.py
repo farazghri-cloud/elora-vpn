@@ -31,13 +31,27 @@ def render_subscription_page(
 
     if is_unlimited_traffic:
         remaining_bytes = 0
-        used_percent = 0.0
+        used_percent_str = "0"
+        bar_width = 0.0
         used_formatted = format_bytes(used_bytes)
         remaining_formatted = "نامحدود"
         limit_formatted = "نامحدود"
     else:
         remaining_bytes = max(0, limit_bytes - used_bytes)
-        used_percent = min(100.0, round((used_bytes / limit_bytes) * 100, 1))
+        if limit_bytes > 0:
+            raw_pct = (used_bytes / limit_bytes) * 100.0
+            if used_bytes > 0 and raw_pct < 0.1:
+                used_percent_str = f"{raw_pct:.2f}"
+                bar_width = max(2.5, raw_pct)
+            elif used_bytes > 0:
+                used_percent_str = f"{min(100.0, raw_pct):.1f}"
+                bar_width = max(2.0, min(100.0, raw_pct))
+            else:
+                used_percent_str = "0"
+                bar_width = 0.0
+        else:
+            used_percent_str = "0"
+            bar_width = 0.0
         used_formatted = format_bytes(used_bytes)
         remaining_formatted = format_bytes(remaining_bytes)
         limit_formatted = format_bytes(limit_bytes)
@@ -106,9 +120,9 @@ def render_subscription_page(
         )
     nodes_html = "".join(nodes_html_list)
 
-    if used_percent > 90:
+    if bar_width > 90:
         progress_color = "linear-gradient(90deg, #ef4444, #dc2626)"
-    elif used_percent > 75:
+    elif bar_width > 75:
         progress_color = "linear-gradient(90deg, #f59e0b, #ef4444)"
     else:
         progress_color = "linear-gradient(90deg, #06b6d4, #8b5cf6)"
@@ -304,11 +318,14 @@ def render_subscription_page(
             background: rgba(255, 255, 255, 0.07);
             border-radius: 9999px;
             overflow: hidden;
+            display: flex;
+            justify-content: flex-start;
         }}
         .progress-bar-fill {{
             height: 100%;
             border-radius: 9999px;
             background: {progress_color};
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.6);
             transition: width 0.8s ease-in-out;
         }}
         .metrics-grid {{
@@ -557,10 +574,10 @@ def render_subscription_page(
             <div class="progress-container">
                 <div class="progress-header">
                     <span>مصرف ترافیک</span>
-                    <span>{used_percent}%</span>
+                    <span>{used_percent_str}%</span>
                 </div>
                 <div class="progress-bar-bg">
-                    <div class="progress-bar-fill" style="width: {used_percent}%;"></div>
+                    <div class="progress-bar-fill" style="width: {bar_width}%;"></div>
                 </div>
             </div>
 
