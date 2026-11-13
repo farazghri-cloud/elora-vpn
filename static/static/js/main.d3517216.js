@@ -174,10 +174,17 @@ window.openBackupModal = function() {
         xhr.open("POST", "/api/system/restore", true);
         if (token) xhr.setRequestHeader("Authorization", "Bearer " + token);
 
+        xhr.timeout = 900000; // 15 minutes timeout for large backups
         xhr.upload.onprogress = function(event) {
             if (event.lengthComputable) {
                 let percent = Math.round((event.loaded / event.total) * 100);
-                status.innerText = "در حال آپلود فایل پشتیبان (" + percent + "%)... لطفاً صفحه را نبندید.";
+                if (percent < 100) {
+                    status.style.color = "#fbbf24";
+                    status.innerText = "در حال ارسال فایل به سرور (" + percent + "%)... لطفاً صفحه را نبندید.";
+                } else {
+                    status.style.color = "#38bdf8";
+                    status.innerText = "فایل به سرور منتقل شد. در حال اعمال در پایگاه داده PostgreSQL... لطفاً چند لحظه شکیبا باشید.";
+                }
             }
         };
 
