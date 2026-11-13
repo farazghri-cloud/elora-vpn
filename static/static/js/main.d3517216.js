@@ -99,18 +99,24 @@ window.openBackupModal = function() {
         fetch(downloadUrl, {
             headers: token ? { "Authorization": "Bearer " + token } : {}
         })
-        .then(res => {
+        .then(async res => {
             if (!res.ok) {
-                // Fallback attempt without /system prefix
-                return fetch("/api/backup?token=" + encodeURIComponent(token), {
+                let res2 = await fetch("/api/backup?token=" + encodeURIComponent(token), {
                     headers: token ? { "Authorization": "Bearer " + token } : {}
                 });
-            }
-            return res;
-        })
-        .then(res => {
-            if (!res.ok) {
-                throw new Error("خطا در ایجاد بکاپ (کد " + res.status + ")");
+                if (res2.ok) return res2.blob();
+
+                let errDetail = "";
+                try {
+                    let j = await res.json();
+                    errDetail = j.detail || "";
+                } catch(e) {
+                    try {
+                        let j2 = await res2.json();
+                        errDetail = j2.detail || "";
+                    } catch(e2) {}
+                }
+                throw new Error(errDetail || ("خطا در ایجاد بکاپ (کد " + res.status + ")"));
             }
             return res.blob();
         })

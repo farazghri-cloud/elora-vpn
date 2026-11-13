@@ -348,6 +348,7 @@ check_dependencies() {
         "systemd"
         "postgresql"  # PostgreSQL itself
         "postgresql-contrib"
+        "postgresql-client"
         "libpq-dev"  # Required for psycopg2
         "gcc"  # Required for compiling
         "python3-wheel"  # For building wheels
@@ -584,7 +585,7 @@ Wants=postgresql.service
 Type=simple
 User=root
 WorkingDirectory=${INSTALL_DIR}
-Environment="PATH=${INSTALL_DIR}/venv/bin"
+Environment="PATH=${INSTALL_DIR}/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 ExecStart=${INSTALL_DIR}/venv/bin/python main.py
 Restart=always
 RestartSec=3
