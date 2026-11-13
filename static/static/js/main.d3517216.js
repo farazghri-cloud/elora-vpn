@@ -170,38 +170,38 @@ window.openBackupModal = function() {
         let token = getAdminToken();
         let authHeader = token ? { "Authorization": "Bearer " + token } : {};
 
-        fetch("/api/system/restore", {
-            method: "POST",
-            headers: authHeader,
-            body: formData
-        })
-        .then(res => {
-            if (!res.ok) {
-                // Fallback attempt without /system prefix
-                return fetch("/api/restore", {
-                    method: "POST",
-                    headers: authHeader,
-                    body: formData
-                });
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/system/restore", true);
+        if (token) xhr.setRequestHeader("Authorization", "Bearer " + token);
+
+        xhr.upload.onprogress = function(event) {
+            if (event.lengthComputable) {
+                let percent = Math.round((event.loaded / event.total) * 100);
+                status.innerText = "در حال آپلود فایل پشتیبان (" + percent + "%)... لطفاً صفحه را نبندید.";
             }
-            return res;
-        })
-        .then(res => {
-            if (!res.ok) {
-                return res.json().then(j => { throw new Error(j.detail || "خطا در بازگردانی"); });
+        };
+
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                status.style.color = "#34d399";
+                status.innerText = "بازگردانی با موفقیت انجام شد! پنل در حال بارگذاری مجدد است...";
+                setTimeout(() => { window.location.reload(); }, 2500);
+            } else {
+                let errMsg = "خطا در بازگردانی (کد " + xhr.status + ")";
+                try {
+                    let j = JSON.parse(xhr.responseText);
+                    errMsg = j.detail || errMsg;
+                } catch(e) {}
+                status.style.color = "#f43f5e";
+                status.innerText = "خطا: " + errMsg;
             }
-            return res.json();
-        })
-        .then(data => {
-            status.style.color = "#34d399";
-            status.innerText = "بازگردانی با موفقیت انجام شد! پنل در حال بارگذاری مجدد است...";
-            setTimeout(() => {
-                window.location.reload();
-            }, 2500);
-        })
-        .catch(err => {
+        };
+
+        xhr.onerror = function() {
             status.style.color = "#f43f5e";
-            status.innerText = "خطا: " + err.message;
-        });
+            status.innerText = "خطای شبکه یا قطعی اینترنت حین ارسال فایل.";
+        };
+
+        xhr.send(formData);
     };
 };

@@ -129,16 +129,27 @@ def export_via_sqlalchemy(output_file_path: str):
 
 
 def import_via_sqlalchemy(input_file_path: str):
-    """Reliable pure-Python database importer using active SQLAlchemy connection."""
+    """Reliable pure-Python database importer streaming statements to support large backups."""
     from sqlalchemy import text
     from src.database import engine
 
-    with open(input_file_path, "r", encoding="utf-8") as f:
-        sql_content = f.read()
-
     with engine.begin() as conn:
         conn.execute(text("SET session_replication_role = 'replica';"))
-        conn.execute(text(sql_content))
+        statement_buffer = []
+        with open(input_file_path, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                stripped = line.strip()
+                if not stripped or stripped.startswith("--"):
+                    continue
+                statement_buffer.append(line)
+                if stripped.endswith(";"):
+                    stmt = "".join(statement_buffer).strip()
+                    statement_buffer = []
+                    if stmt:
+                        try:
+                            conn.execute(text(stmt))
+                        except Exception as e:
+                            logger.warning(f"Warning during SQL statement import: {e}")
         conn.execute(text("SET session_replication_role = 'origin';"))
 
 
@@ -245,12 +256,11 @@ async def restore_backup(
     restore_file_path = os.path.join(temp_dir, f"restore_{datetime.utcnow().timestamp()}.sql")
 
     try:
-        content = await file.read()
-        if len(content) < 10:
-            raise HTTPException(status_code=400, detail="Uploaded file is empty")
-
         with open(restore_file_path, "wb") as f:
-            f.write(content)
+            shutil.copyfileobj(file.file, f, length=1024 * 1024)
+
+        if os.path.getsize(restore_file_path) < 10:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty")
 
         restore_success = False
 
@@ -272,7 +282,7 @@ async def restore_backup(
             ]
             try:
                 proc = subprocess.run(
-                    cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=180
+                    cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=900
                 )
                 if proc.returncode == 0:
                     restore_success = True
